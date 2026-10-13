@@ -1,0 +1,12 @@
+[Desktop Entry]
+Name=Systemd Units
+Comment=Pin and control system and user systemd units
+Type=Application
+Icon=io.github.cosmic-applet-systemd
+Exec=cosmic-applet-systemd
+Terminal=false
+StartupNotify=false
+Categories=System;Monitor;
+Keywords=systemd;Units;Services;Timers;COSMIC;
+NoDisplay=true
+X-CosmicApplet=true
