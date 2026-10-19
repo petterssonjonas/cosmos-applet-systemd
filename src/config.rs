@@ -35,7 +35,7 @@ fn path() -> Result<PathBuf, String> {
     if !root.is_absolute() {
         return Err("The configuration directory must be an absolute path.".into());
     }
-    Ok(root.join("cosmic-applet-systemd/pins.json"))
+    Ok(root.join("cosmos-applet-systemd/pins.json"))
 }
 
 fn validate(pins: &[UnitId]) -> Result<(), String> {
@@ -192,7 +192,7 @@ mod tests {
                 .unwrap()
                 .as_nanos();
             let root = Scratch(env::temp_dir().join(format!(
-                "cosmic-systemd-config-test-{}-{stamp}-{}",
+                "cosmos-applet-systemd-config-test-{}-{stamp}-{}",
                 std::process::id(),
                 NEXT_TEMP.fetch_add(1, Ordering::Relaxed)
             )));

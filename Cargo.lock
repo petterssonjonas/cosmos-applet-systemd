@@ -877,7 +877,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "cosmic-applet-systemd"
+name = "cosmos-applet-systemd"
 version = "0.1.0"
 dependencies = [
  "futures-util",

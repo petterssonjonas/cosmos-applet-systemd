@@ -1,9 +1,9 @@
 [Desktop Entry]
-Name=Systemd Units
+Name=Cosmos Systemd
 Comment=Pin and control system and user systemd units
 Type=Application
-Icon=io.github.cosmic-applet-systemd
-Exec=cosmic-applet-systemd
+Icon=dev.jp.CosmosAppletSystemd
+Exec=cosmos-applet-systemd
 Terminal=false
 StartupNotify=false
 Categories=System;Monitor;

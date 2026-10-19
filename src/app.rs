@@ -666,7 +666,7 @@ impl cosmic::Application for AppModel {
     type Executor = cosmic::executor::Default;
     type Flags = ();
     type Message = Message;
-    const APP_ID: &'static str = "io.github.cosmic-applet-systemd";
+    const APP_ID: &'static str = "dev.jp.CosmosAppletSystemd";
 
     fn core(&self) -> &cosmic::Core {
         &self.core
@@ -688,7 +688,7 @@ impl cosmic::Application for AppModel {
                 applet
                     .icon_button_from_handle(self.icon.clone())
                     .on_press(Message::TogglePopup),
-                "Systemd Units",
+                "Cosmos Systemd",
                 self.popup.is_some(),
                 Message::SurfaceAction,
                 self.core.main_window_id(),
@@ -702,7 +702,7 @@ impl cosmic::Application for AppModel {
         } else if self.settings {
             "Settings"
         } else {
-            "Systemd Units"
+            "Cosmos Systemd"
         };
         let header = widget::row([
             widget::text::title3(title).width(Length::Fill).into(),

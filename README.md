@@ -1,100 +1,122 @@
-# COSMIC Systemd Units Applet
+# Cosmos Systemd
 
-A native COSMIC panel applet for inspecting and controlling pinned systemd units. The panel button uses a theme-aware controls icon with the tooltip **Systemd Units**.
+Inspect and control pinned systemd units from the COSMIC panel. Keep system units and user units separate.
+Cosmos is independent of System76. COSMIC libraries and protocols keep their upstream names.
 
-## Usage
+## Requirements
 
-Click the panel icon to open the dropdown. Pins are empty on first launch; nothing is selected automatically. Open **Settings** at the bottom, choose **System** or **User**, search unit names or descriptions, and select **Pin**. Pins retain their order across restarts. **Unpin** removes a unit from this applet without changing systemd.
+Use Linux with a COSMIC desktop session and accessible system/session systemd managers over D-Bus.
+System changes need a working desktop Polkit authentication agent.
+Install native build packages for your distribution:
 
-Each pinned unit shows its scope, description, and separate indicators:
+```sh
+# Fedora
+sudo dnf install gcc gcc-c++ cmake git pkgconf-pkg-config just desktop-file-utils expat-devel fontconfig-devel freetype-devel libxkbcommon-devel wayland-devel
 
-- **Activity**: running, inactive, failed, activating, or another state reported by systemd. An active oneshot with no running process is shown as **Active (exited)**, not Running.
-- **Enablement**: enabled, disabled, static, masked, runtime-enabled, or another reported unit-file state. Enabled does not mean running; disabled does not mean stopped.
+# Debian 13 or newer
+sudo apt update
+sudo apt install build-essential cmake git pkgconf just desktop-file-utils libexpat1-dev libfontconfig-dev libfreetype-dev libxkbcommon-dev libwayland-dev
 
-All five controls are displayed. Unsupported actions are disabled with an explanation:
+# Arch Linux
+sudo pacman -Syu --needed base-devel cmake git pkgconf just desktop-file-utils expat fontconfig freetype2 libxkbcommon wayland
+```
 
-| Action | Effect |
-| --- | --- |
-| Start | Activate now without enabling automatic activation. |
-| Restart | Restart now without changing enablement. systemd may start an inactive unit. |
-| Stop | Deactivate now without disabling automatic activation. |
-| Enable | Create persistent activation links without starting the unit or overriding a mask. |
-| Disable | Remove local persistent and runtime activation links without stopping the unit or masking it. |
+The lists follow [libcosmic's native requirements](https://github.com/pop-os/libcosmic#dependencies) and distribution package metadata.
+They are package examples, not a claim that all three distributions were tested.
+Install current stable Rust with [rustup](https://rustup.rs), as your normal user. Distribution Rust can be too old.
+After rustup setup, open a new terminal and run:
 
-Every mutation requires confirmation; **Cancel** receives default focus. System units may affect networking, the desktop, or other users. Read the selected unit name and scope before confirming, especially for targets and mounts.
+```sh
+rustup update stable
+rustup default stable
+```
 
-Pinned statuses refresh **when the dropdown opens**, every **5 minutes while it remains open**, after operations, and on **Refresh**. There is no status polling while closed. The status spinner stays in the header so refreshes preserve search focus. Settings fetch the unit catalog when opened, when switching scope, and on **Refresh**. Search results and pins are paginated; scroll inside the dropdown for additional controls. Settings remain accessible in the fixed footer.
+## Build and install
 
-## Podman Quadlets
+Use `sudo` only for package prerequisites above, never for these build or install commands:
 
-Open **Settings → Quadlets** to discover files under `$XDG_CONFIG_HOME/containers/systemd`, normally `~/.config/containers/systemd`. Discovery includes subdirectories and symlinks, with cycle protection. Recognized source types are `.container`, `.pod`, `.kube`, `.network`, `.volume`, `.image`, `.build`, and `.artifact`.
+```sh
+git clone https://github.com/petterssonjonas/cosmos-applet-systemd
+cd cosmos-applet-systemd
+just build-release
+just install
+```
 
-Podman's generator turns Quadlets into ordinary systemd services during manager startup or `daemon-reload`. For example, `open-webui.container` normally produces the user unit `open-webui.service`. The applet matches actual services using systemd's `SourcePath`, not `ContainerName` or a guessed filename, so custom service names and aliases can be matched. Search accepts source paths, service names, and descriptions.
+Build and install are separate. Installation uses the existing release build.
+The executable goes to `~/.local/bin/cosmos-applet-systemd`. The desktop entry and icon go to `~/.local/share`.
+The desktop entry uses an absolute executable path. Keep `CARGO_TARGET_DIR` the same for both commands if you set it.
+In a development container, use your host-mapped normal user, not root.
 
-Pin a generated service to use **Start**, **Restart**, and **Stop** through the existing systemd controls. Pinned cards show the Quadlet source path and independent activity/enablement state. Saved pins still contain only the actual unit name and scope.
+Open **COSMIC Settings → Desktop → Panel → Configure panel applets**.
+Add **Cosmos Systemd** (`dev.jp.CosmosAppletSystemd`). Remove and add it again after an upgrade.
+Installation does not change the panel layout.
 
-**Generated services cannot be enabled or disabled like ordinary unit files.** Their automatic activation comes from `[Install]` in the Quadlet source or its drop-ins, for example:
+## Use and authorization
+
+Open the dropdown, then **Settings**. Select **System** or **User**, search for a unit, and select **Pin**.
+No units are pinned automatically. **Unpin** removes only the saved pin; it does not change the unit.
+Status refreshes when the dropdown opens, every five minutes while open, after operations, and on **Refresh**.
+There is no status polling while closed.
+
+Activity and enablement are independent. **Active (exited)** does not mean a process is running.
+Enabled does not mean running; disabled does not mean stopped.
+
+- **Start**, **Restart**, and **Stop** change current activity, not enablement. Restart can start an inactive unit.
+- **Enable** adds activation links without starting the unit or overriding a mask.
+- **Disable** removes local activation links without stopping or masking the unit. Global user links can still keep it enabled.
+
+Every change requires confirmation. **Cancel** has default focus. System units can affect networking, the desktop, and other users.
+Read the unit name and scope before confirming.
+
+The applet uses D-Bus directly. It does not invoke a shell, run as root, invoke `sudo`, or collect passwords.
+System changes can show a native Polkit prompt at runtime. This is separate from unprivileged applet installation.
+Missing authorization or a missing authentication agent produces an error.
+A timeout does not cancel a systemd job. Refresh status before retrying.
+Static units, generated units, masks, aliases, and templates keep systemd's restrictions. Select a concrete template instance.
+Unknown data is not shown as a confirmed stopped or disabled state. No network service or account is required.
+
+### Podman Quadlets
+
+Open **Settings → Quadlets** to find sources in `~/.config/containers/systemd`, following `$XDG_CONFIG_HOME` when set.
+Podman and its Quadlet generator must already be installed and configured for Quadlet use.
+The applet matches generated services through systemd's `SourcePath`; it never guesses a service name.
+Unmatched sources remain visible but cannot be pinned as guessed services.
+
+Use **Start**, **Restart**, or **Stop** on a verified generated service.
+Generated services cannot use ordinary **Enable** or **Disable**. Set automatic activation in the Quadlet source instead:
 
 ```ini
 [Install]
 WantedBy=default.target
 ```
 
-After changing a user Quadlet, run `systemctl --user daemon-reload`, then **Refresh**. The applet does not edit Quadlet files, execute the generator, or reload the manager merely to discover sources. The five-minute status refresh policy is unchanged.
+After editing a user Quadlet, run `systemctl --user daemon-reload`, then select **Refresh**.
+The applet does not edit Quadlets, run the generator, or reload the manager for discovery.
+Other generator search paths remain accessible through the normal unit lists.
 
-Sources without a verified generated service remain visible with guidance, but no Pin button targeting a guessed service. Discovery/mapping failures are reported without discarding the ordinary unit catalog. Template definitions cannot be started directly; select a concrete instance. Template source paths requiring unresolved escaping or specifier expansion are reported as unverifiable rather than guessed.
+## Saved pins and migration
 
-The dedicated Quadlets view inventories the user's configuration directory. Quadlet-backed units from other generator search paths remain accessible through the regular System/User lists; their source metadata is shown when available.
+Pins use `~/.config/cosmos-applet-systemd/pins.json`, or the corresponding `$XDG_CONFIG_HOME` directory.
+Invalid configuration is reported rather than overwritten with an empty list.
 
-## Authorization and boundaries
+To migrate, stop the old applet. Before launching the new applet, run `just migrate`.
+It copies `~/.config/cosmic-applet-systemd` to `~/.config/cosmos-applet-systemd`, following `$XDG_CONFIG_HOME` when set.
+Migration keeps the source, refuses an existing destination, and rejects symlinks or untrusted paths.
+There is no automatic migration or old-name runtime fallback. Quadlet sources stay in `containers/systemd` and are not copied.
 
-The applet talks directly to the system or session systemd manager over D-Bus. It does not run shell commands, run as root, invoke sudo, or collect passwords. System mutations allow native **Polkit** authorization; the desktop authentication agent supplies any required prompt. A missing authentication agent or denied authorization is shown as an error.
+Replace the old **Systemd Units** panel entry with **Cosmos Systemd**.
+Remove legacy files separately under the old prefix: `bin/cosmic-applet-systemd`,
+`share/applications/io.github.cosmic-applet-systemd.desktop`, and
+`share/icons/hicolor/scalable/apps/io.github.cosmic-applet-systemd.svg`.
 
-Capabilities are rechecked before each operation. Start, Restart, and Stop wait for the matching systemd job to finish; failed jobs are not reported as success. Timeouts do not imply cancellation: refresh status before retrying, since a job may continue.
+## Uninstall
 
-Enable and Disable reload the selected manager after link changes and report the resulting unit-file state. A user unit enabled through global configuration may remain enabled after its local links are removed; the applet reports this rather than silently masking it. Static/generated units, masks, aliases, and template definitions retain systemd's restrictions. Pin a concrete template instance to start it. Disabling automatic activation does not prevent dependencies or other activation sources from starting a unit.
+Remove the applet from the panel. Run `just uninstall` from this source directory, without `sudo`.
+Uninstall keeps saved pins and legacy files. It does not change systemd units or Quadlet sources.
 
-The catalog combines loaded units and installed unit files. An unloaded file can have an unknown description/activity until its status is queried. Pinning queries metadata but does not start or enable the unit. Unknown or unavailable data is never presented as a confirmed stopped/disabled state.
+## License and references
 
-No external network service, account, or credential storage is required.
-
-## Build and install
-
-Requirements: a current Rust toolchain, the [libcosmic build dependencies](https://github.com/pop-os/libcosmic), `just`, `desktop-file-utils`, a COSMIC desktop session, and systemd with accessible system/session D-Bus managers. System changes also need a working desktop Polkit authentication agent.
-
-```sh
-cargo build --release --locked
-just install
-```
-
-The default prefix is `~/.local`. Installation writes the executable, desktop entry, and icon there. The desktop entry uses an absolute executable path, so the panel does not need `~/.local/bin` in its `PATH`.
-
-Add **Systemd Units** in **COSMIC Settings → Desktop → Panel → Configure panel applets**. The desktop ID is `io.github.cosmic-applet-systemd`. `just install` itself does not alter the panel layout. Remove and re-add the applet to load an updated executable.
-
-```sh
-cargo test --release --locked
-cargo clippy --release --all-targets --locked -- -D warnings
-```
-
-## Saved pins
-
-Pins are stored in `$XDG_CONFIG_HOME/cosmic-applet-systemd/pins.json`, normally `~/.config/cosmic-applet-systemd/pins.json`. System and user units with the same name are separate entries. Changes use private files and atomic replacement; the UI retains its previous pins if saving fails. Invalid or unsupported configuration is reported rather than overwritten with an empty list.
-
-To uninstall, remove the applet from the panel, then run `just uninstall`. Saved pins remain available for a later installation.
-
-## Verification
-
-Verified locally on Fedora 44, systemd 259, and COSMIC:
-
-- Release build, 32 tests, strict Clippy, and desktop-entry validation. A regression test verifies that search focus survives both the beginning and completion of a status refresh.
-- Real system and user unit catalog reads.
-- Start, Restart, Stop, Enable, and Disable against disposable user services. Restart produced a new process; Enable/Disable did not change runtime activity.
-- Removal of runtime-only and combined persistent/runtime enablement.
-- Failed-job reporting and active/exited oneshot state handling.
-- Native popup rendering, empty first launch, searchable settings, pin persistence/removal, independent indicators, default-Cancel confirmation, and a confirmed UI action starting a disposable service.
-- Read-only Quadlet discovery against four real local sources and their generated services; isolated checks for symlink cycles and an unmatched `dbus.container` that must not control the unrelated `dbus.service`.
-- Native Quadlets selection, source search, pin saving, and pin restoration were exercised through the running application. Desktop screenshot capture timed out in this session, so the new Quadlets layout was not visually captured.
-
-No existing user or system unit was started, stopped, restarted, enabled, or disabled during verification. System-scope mutation and its interactive Polkit prompt were not exercised. Temporary smoke drivers, pins, and unit fixtures are not shipped.
-
-Implementation follows the [COSMIC applet template](https://github.com/pop-os/cosmic-applet-template), the [systemd D-Bus interface](https://www.freedesktop.org/software/systemd/man/latest/org.freedesktop.systemd1.html), and the [Podman Quadlet documentation](https://docs.podman.io/en/latest/markdown/podman-systemd.unit.5.html).
+Code: MPL-2.0, as declared in `Cargo.toml`.
+Built with [libcosmic](https://github.com/pop-os/libcosmic) and the [COSMIC applet template](https://github.com/pop-os/cosmic-applet-template).
+See the [systemd D-Bus interface](https://www.freedesktop.org/software/systemd/man/latest/org.freedesktop.systemd1.html)
+and [Podman Quadlet documentation](https://docs.podman.io/en/latest/markdown/podman-systemd.unit.5.html).

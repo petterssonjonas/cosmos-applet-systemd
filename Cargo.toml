@@ -1,9 +1,9 @@
 [package]
-name = "cosmic-applet-systemd"
+name = "cosmos-applet-systemd"
 version = "0.1.0"
 edition = "2024"
 license = "MPL-2.0"
-description = "COSMIC panel applet for pinned systemd units"
+description = "Cosmos Systemd applet for pinned units on the COSMIC panel"
 
 [dependencies]
 libcosmic = { git = "https://github.com/pop-os/libcosmic.git", default-features = false, features = ["applet", "a11y", "dbus-config"] }
